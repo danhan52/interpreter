@@ -1,0 +1,4 @@
+(let ((foo "hello")
+      (bar 7)
+      (baz #f))
+  (if baz foo bar))
