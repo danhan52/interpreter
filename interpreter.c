@@ -162,20 +162,28 @@ Value *eval(Value *expr, Frame *frame) {
         case SYMBOL_TYPE:
             result = lookUpSymbol(expr, frame);
             break;
+        case NULL_TYPE:
+            result = makeNull();
+            break;
         case CONS_TYPE:
         {
             Value *first = car(expr);
             Value *args = cdr(expr);
 
             assert(first != NULL);
-            if (!strcmp(first->s, "if")) {
-                result = evalIf(args, frame);
-            } else if (!strcmp(first->s, "let")) {
-                result = evalLet(args, frame);
-            } 
+            if (first->type == SYMBOL_TYPE) {
+                if (!strcmp(first->s, "if")) {
+                    result = evalIf(args, frame);
+                } else if (!strcmp(first->s, "let")) {
+                    result = evalLet(args, frame);
+                } 
 
-            else {
-                printf("Interpret error: unrecognized expression\n");
+                else {
+                    printf("Interpret error: unrecognized expression\n");
+                    texit(1);
+                }
+            } else {
+                printf("Interpret error: badly formed expression\n");
                 texit(1);
             }
             break;
@@ -188,9 +196,37 @@ Value *eval(Value *expr, Frame *frame) {
     return result;
 }
 
+void interpDisplay(Value *item) {
+    Value *curlist = item;
+    switch (curlist->type) {
+    case DOUBLE_TYPE:
+        printf("%f\n", curlist->d);
+        break;
+    case STR_TYPE:
+        printf("%s\n", curlist->s);
+        break;
+    case INT_TYPE:
+        printf("%i\n", curlist->i);
+        break;
+    case NULL_TYPE:
+        printf("()\n");
+        break;
+    case BOOL_TYPE:
+        if (curlist->i) {
+            printf("#t\n");
+        } else {
+            printf("#f\n");
+        }
+        break;
+    default:
+        printf("Interpret error: bad result (on me)\n");
+        break;
+    }
+}
+
 void interpret(Value *tree) {
     // make empty top frame
-    Frame *topFrame;
+    Frame *topFrame = talloc(sizeof(Frame));
     topFrame->parent = NULL;
     topFrame->bindings = makeNull();
     // get ready to evaluate
@@ -199,7 +235,7 @@ void interpret(Value *tree) {
     Value *result;
     while (1) {
         result = eval(curexp, topFrame);
-        display(result);
+        interpDisplay(result);
         if (curtree->type == NULL_TYPE) {
             break;
         } else {

@@ -1,3 +1,4 @@
-3
-5
-(if #f 7 12)
+(let ((x #t)
+    (y 4)
+    (z "yoda"))
+        (if x (let ((y 2)) y) z))
