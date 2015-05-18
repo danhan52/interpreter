@@ -119,14 +119,14 @@ void display(Value *list) {
                 display(car(curlist));
                 break;
             }
-            if ((*(cdr(curlist))).type == NULL_TYPE) {
+            if ((*(cdr(curlist))).type != CONS_TYPE) {
                 break;
             } else {
                 printf(", ");
                 curlist = cdr(curlist);
             }
         }
-        printf(")\n");
+        printf(")");
         break;
     }
 }

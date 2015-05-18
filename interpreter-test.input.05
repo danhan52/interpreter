@@ -1,0 +1,5 @@
+(let ((q (quote (wee c w))))
+    (if #t q
+        (quote (a b s))))
+(quote yoda)
+(quote (things are good))

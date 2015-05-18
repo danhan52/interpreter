@@ -12,6 +12,7 @@
 #include "value.h"
 #include "talloc.h"
 #include "interpreter.h"
+#include "parser.h"
 
 // finds the symbol within the bindings of the current frame
 // or prints an error and quits
@@ -176,7 +177,9 @@ Value *eval(Value *expr, Frame *frame) {
                     result = evalIf(args, frame);
                 } else if (!strcmp(first->s, "let")) {
                     result = evalLet(args, frame);
-                } 
+                } else if (!strcmp(first->s, "quote")) {
+                    result = args;
+                }
 
                 else {
                     printf("Interpret error: unrecognized expression\n");
@@ -195,6 +198,7 @@ Value *eval(Value *expr, Frame *frame) {
     }
     return result;
 }
+
 
 void interpDisplay(Value *item) {
     Value *curlist = item;
@@ -217,6 +221,10 @@ void interpDisplay(Value *item) {
         } else {
             printf("#f\n");
         }
+        break;
+    case CONS_TYPE:
+        printTree(item);
+        printf("\n");
         break;
     default:
         printf("Interpret error: bad result (on me)\n");
