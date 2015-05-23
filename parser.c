@@ -93,6 +93,12 @@ void printTree(Value *tree) {
             printf("(#f)");
         }
         break;
+    case CLOSURE_TYPE:
+        printf("(Closure)");
+        break;
+    case VOID_TYPE:
+        printf("(THE VOID)");
+        break;
     case CONS_TYPE:
         
         while (1) {
@@ -127,6 +133,12 @@ void printTree(Value *tree) {
                 } else {
                     printf("#f");
                 }
+                break;
+            case CLOSURE_TYPE:
+                printf("(Closure)");
+                break;
+            case VOID_TYPE:
+                printf("(THE VOID)");
                 break;
             case CONS_TYPE:
                 printf("(");

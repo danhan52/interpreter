@@ -43,10 +43,11 @@ Value *lookUpSymbol(Value *symb, Frame *frame) {
                         texit(1);
                     } else {    // look in parent frame
                         result = lookUpSymbol(symb, papa);
+                        break;
                     }
                 } else if (variables->type == CONS_TYPE) {  // more entries
                     curvar = car(variables);
-                    variables =cdr(variables);
+                    variables = cdr(variables);
                 } else {    // if I screwed up
                     printf("Interpret error: frame bindings are funky (bad)\n");
                     texit(1);
@@ -96,6 +97,24 @@ void bindingError() {
     texit(1);
 }
 
+// creates new empty frame
+Frame *createNewFrame(Frame *papa) {
+    Frame *newFrame = talloc(sizeof(Frame));
+    newFrame->parent = papa;
+    newFrame->bindings = makeNull();
+    return newFrame;
+}
+
+// binds a variable with name varName and value varVal to the frame
+void bindToFrame(Value *varName, Value *varVal, Frame *frame) {
+    if (varName->type != SYMBOL_TYPE) {
+        bindingError();
+    }
+    Value *newVal = eval(varVal, frame);
+    Value *varBound = cons(varName, newVal);
+    frame->bindings = cons(varBound, frame->bindings);
+}
+
 // evaluates let statement or throws an error
 Value *evalLet(Value *args, Frame *frame) {
     // empty let
@@ -104,10 +123,8 @@ Value *evalLet(Value *args, Frame *frame) {
         texit(1);
     }
     
-    Frame *tempFrame = talloc(sizeof(Frame));
-    tempFrame->parent = frame;
+    Frame *letFrame = createNewFrame(frame);
     Value *variables = car(args);
-    Value *binds = makeNull();
     if (variables->type == NULL_TYPE) { // no bindings
     } else if (variables->type == CONS_TYPE) {
         Value *curvar = car(variables);
@@ -121,13 +138,7 @@ Value *evalLet(Value *args, Frame *frame) {
                 bindingError();
             }
             
-            Value *varName = car(curvar);
-            if (varName->type != SYMBOL_TYPE) {
-                bindingError();
-            }
-            Value *varVal = eval(car(cdr(curvar)), frame);
-            Value *varBound = cons(varName, varVal);
-            binds = cons(varBound, binds);
+            bindToFrame(car(curvar), car(cdr(curvar)), letFrame);
             
             if (variables->type == NULL_TYPE) {
                 break;
@@ -140,10 +151,65 @@ Value *evalLet(Value *args, Frame *frame) {
         bindingError();
     }
     
-    tempFrame->bindings = binds;
-    return eval(car(cdr(args)), tempFrame);
+    return eval(car(cdr(args)), letFrame);
 }
 
+Value *evalDefine(Value *args, Frame *frame) {
+    if (args->type != CONS_TYPE) {
+        printf("Interpret error: improperly formed define\n");
+        texit(1);
+    } else if (length(args) != 2) {
+        printf("Interpret error: improperly formed define\n");
+        texit(1);
+    }
+    bindToFrame(car(args), car(cdr(args)), frame);
+    Value *thevoid = talloc(sizeof(Value));
+    thevoid->type = VOID_TYPE;
+    return thevoid;
+}
+
+Value *evalLambda(Value *args, Frame *frame) {
+    if (args->type != CONS_TYPE) {
+        printf("Interpret error: improperly formed lambda\n");
+        texit(1);
+    } else if (length(args) != 2) {
+        printf("Interpret error: improperly formed lambda\n");
+        texit(1);
+    }
+    Value *closure = talloc(sizeof(Value));
+    closure->type = CLOSURE_TYPE;
+    (closure->cl).frame = frame;
+    Value *params = car(args);
+    Value *temparams = params;
+    for (int i=0; i<length(params); i++) {
+        Value *curName = car(temparams);
+        if (curName->type != SYMBOL_TYPE) {
+            printf("Interpret error: badly formed parameters in lambda\n");
+            texit(1);
+        }
+        temparams = cdr(temparams);
+    }
+    (closure->cl).paramNames = params;
+    (closure->cl).functionCode = cdr(args);
+    
+    
+    return closure;
+}
+
+Value *apply(Value *function, Value *args) {
+    
+}
+
+Value *evalEach(Value *args, Frame *frame) {
+    Value *evaledArgs = makeNull();
+    Value *tempArgs = args;
+    for (int i=0; i<length(args); i++) {
+        Value *curArg = eval(car(tempArgs));
+        evaledArgs = cons(curArg, evaledArgs);
+        tempArgs = cdr(tempArgs);
+    }
+    return evaledArgs;
+}
 
 Value *eval(Value *expr, Frame *frame) {
     Value *result;
@@ -166,6 +232,9 @@ Value *eval(Value *expr, Frame *frame) {
         case NULL_TYPE:
             result = makeNull();
             break;
+        case CLOSURE_TYPE:
+            result = expr;
+            break;
         case CONS_TYPE:
         {
             Value *first = car(expr);
@@ -179,11 +248,16 @@ Value *eval(Value *expr, Frame *frame) {
                     result = evalLet(args, frame);
                 } else if (!strcmp(first->s, "quote")) {
                     result = args;
+                } else if (!strcmp(first->s, "define")) {
+                    result = evalDefine(args, frame);
+                } else if (!strcmp(first->s, "lambda")) {
+                    result = evalLambda(args, frame);
                 }
 
                 else {
-                    printf("Interpret error: unrecognized expression\n");
-                    texit(1);
+                    Value *evaledOperator = eval(first, frame);
+                    Value *evaledArgs = evalEach(args, frame);
+                    return apply(evaledOperator, evaledArgs);
                 }
             } else {
                 printf("Interpret error: badly formed expression\n");
@@ -212,15 +286,20 @@ void interpDisplay(Value *item) {
     case INT_TYPE:
         printf("%i\n", curlist->i);
         break;
-    case NULL_TYPE:
-        printf("()\n");
-        break;
+//    case NULL_TYPE:
+//        printf("()\n");
+//        break;
     case BOOL_TYPE:
         if (curlist->i) {
             printf("#t\n");
         } else {
             printf("#f\n");
         }
+        break;
+    case VOID_TYPE:
+        break;
+    case CLOSURE_TYPE:
+        printf("procedure %p\n", item);
         break;
     case CONS_TYPE:
         printTree(item);

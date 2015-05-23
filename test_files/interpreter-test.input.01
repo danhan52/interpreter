@@ -1,0 +1,2 @@
+(let ((x #t) (y "not today") (z "yoda"))
+    (if x (let ((y "gotcha") y) z)))

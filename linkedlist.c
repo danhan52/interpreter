@@ -80,6 +80,12 @@ void display(Value *list) {
             printf("(#f)");
         }
         break;
+    case CLOSURE_TYPE:
+        printf("(Closure)");
+        break;
+    case VOID_TYPE:
+        printf("(THE VOID)");
+        break;
     case CONS_TYPE:
         printf("(");
         while (1) {
@@ -114,6 +120,12 @@ void display(Value *list) {
                 } else {
                     printf("#f");
                 }
+                break;
+            case CLOSURE_TYPE:
+                printf("Closure");
+                break;
+            case VOID_TYPE:
+                printf("THE VOID");
                 break;
             case CONS_TYPE:
                 display(car(curlist));

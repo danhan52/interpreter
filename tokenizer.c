@@ -306,6 +306,9 @@ void displayTokens(Value *list) {
         case CONS_TYPE:
             printf("Tokenizer error: cons cell in tokens\n");
             break;
+        default:
+            printf("How'd this get here?\n");
+            break;
         }
         if (cdr(curlist)->type == NULL_TYPE) {
             break;
