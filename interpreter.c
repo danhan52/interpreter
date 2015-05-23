@@ -190,25 +190,54 @@ Value *evalLambda(Value *args, Frame *frame) {
         temparams = cdr(temparams);
     }
     (closure->cl).paramNames = params;
-    (closure->cl).functionCode = cdr(args);
+    (closure->cl).functionCode = car(cdr(args));
     
     
     return closure;
 }
 
 Value *apply(Value *function, Value *args) {
+    if (function->type != CLOSURE_TYPE) {
+        printf("Interpret error: badly formed function\n");
+        texit(1);
+    }
+    if (length((function->cl).paramNames) > length(args)) {
+        printf("Interpret error: too few args in function\n)");
+        texit(1);
+    } else if (length((function->cl).paramNames) < length(args)) {
+        printf("Interpret error: too many args in function\n)");
+        texit(1);
+    }
+    if (args->type != CONS_TYPE) {
+        printf("Interpret error: badly formed args\n");
+        texit(1);
+    }
     
+    Frame *funcFrame = createNewFrame((function->cl).frame);
+    
+    Value *params = (function->cl).paramNames;
+    Value *tempArgs = args;
+    for (int i=0; i<length((function->cl).paramNames); i++) {
+        Value *curName = car(params);
+        Value *curArg = car(tempArgs);
+        bindToFrame(curName, curArg, funcFrame);
+        params = cdr(params);
+        tempArgs = cdr(tempArgs);
+    }
+    Value *code = (function->cl).functionCode;
+    return eval(code, funcFrame);
 }
 
 Value *evalEach(Value *args, Frame *frame) {
     Value *evaledArgs = makeNull();
     Value *tempArgs = args;
     for (int i=0; i<length(args); i++) {
-        Value *curArg = eval(car(tempArgs));
+        Value *curArg = eval(car(tempArgs), frame);
         evaledArgs = cons(curArg, evaledArgs);
         tempArgs = cdr(tempArgs);
     }
-    return evaledArgs;
+    Value *result = reverse(evaledArgs);
+    return result;
 }
 
 Value *eval(Value *expr, Frame *frame) {
@@ -286,9 +315,6 @@ void interpDisplay(Value *item) {
     case INT_TYPE:
         printf("%i\n", curlist->i);
         break;
-//    case NULL_TYPE:
-//        printf("()\n");
-//        break;
     case BOOL_TYPE:
         if (curlist->i) {
             printf("#t\n");

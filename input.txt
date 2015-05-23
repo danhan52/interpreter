@@ -1,4 +1,11 @@
-(let ((decider #f)
-        (quotes (if #t (quote true) (quote false)))
-        (letters (if #f "0" "1")))
-            (if decider quotes letters))
+(define not
+  (lambda (bool)
+    (if bool #f #t)))
+    
+(define testit
+  (lambda (cond conseq alt)
+    (let ((nconseq (not conseq)) (nalt (not alt)))
+      (if cond nconseq nalt))))
+
+(testit #t #f #t)
+(testit #t #t #f)
