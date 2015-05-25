@@ -1,4 +1,0 @@
-(let ((decider #f)
-        (quotes (if #t (quote true) (quote false)))
-        (letters (if #f "0" "1")))
-            (if decider quotes letters))

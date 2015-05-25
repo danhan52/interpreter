@@ -1,0 +1,18 @@
+(define uno
+    (lambda ()
+        "dragonite"))
+
+(define dos
+    (lambda ()
+        "magikarp"))
+
+(define tres
+    (lambda (argument)
+        (if argument #t #f)))
+    
+(define cuatro
+    (lambda (one two three)
+        (if (tres one) two three)))
+
+(cuatro #f "uno" "dos")
+(cuatro #t (uno) (dos))

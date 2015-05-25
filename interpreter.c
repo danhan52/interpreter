@@ -208,7 +208,7 @@ Value *apply(Value *function, Value *args) {
         printf("Interpret error: too many args in function\n)");
         texit(1);
     }
-    if (args->type != CONS_TYPE) {
+    if (args->type != CONS_TYPE && args->type != NULL_TYPE) {
         printf("Interpret error: badly formed args\n");
         texit(1);
     }

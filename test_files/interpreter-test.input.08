@@ -1,0 +1,6 @@
+(define bark
+    (lambda (won too)
+        (let ((one won) (two too))
+            (if too one (quote raggle)))))
+            
+(bark "dominos" #t)
