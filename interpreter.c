@@ -154,6 +154,7 @@ Value *evalLet(Value *args, Frame *frame) {
     return eval(car(cdr(args)), letFrame);
 }
 
+// evaluates define by binding input to frame
 Value *evalDefine(Value *args, Frame *frame) {
     if (args->type != CONS_TYPE) {
         printf("Interpret error: improperly formed define\n");
@@ -168,6 +169,7 @@ Value *evalDefine(Value *args, Frame *frame) {
     return thevoid;
 }
 
+// creates a closure based on the arguments are returns an error
 Value *evalLambda(Value *args, Frame *frame) {
     if (args->type != CONS_TYPE) {
         printf("Interpret error: improperly formed lambda\n");
@@ -196,6 +198,7 @@ Value *evalLambda(Value *args, Frame *frame) {
     return closure;
 }
 
+// applies the given function (closure) to the arguments
 Value *apply(Value *function, Value *args) {
     if (function->type != CLOSURE_TYPE) {
         printf("Interpret error: badly formed function\n");
@@ -213,10 +216,11 @@ Value *apply(Value *function, Value *args) {
         texit(1);
     }
     
+    // create a frame for the function
     Frame *funcFrame = createNewFrame((function->cl).frame);
-    
     Value *params = (function->cl).paramNames;
     Value *tempArgs = args;
+    // bind arguments to parameters
     for (int i=0; i<length((function->cl).paramNames); i++) {
         Value *curName = car(params);
         Value *curArg = car(tempArgs);
@@ -228,6 +232,7 @@ Value *apply(Value *function, Value *args) {
     return eval(code, funcFrame);
 }
 
+// evaluate every argument at return list with results
 Value *evalEach(Value *args, Frame *frame) {
     Value *evaledArgs = makeNull();
     Value *tempArgs = args;
@@ -240,6 +245,7 @@ Value *evalEach(Value *args, Frame *frame) {
     return result;
 }
 
+// evaluate everything
 Value *eval(Value *expr, Frame *frame) {
     Value *result;
     switch (expr->type) {
@@ -271,6 +277,7 @@ Value *eval(Value *expr, Frame *frame) {
 
             assert(first != NULL);
             if (first->type == SYMBOL_TYPE) {
+                // special forms
                 if (!strcmp(first->s, "if")) {
                     result = evalIf(args, frame);
                 } else if (!strcmp(first->s, "let")) {
@@ -282,8 +289,8 @@ Value *eval(Value *expr, Frame *frame) {
                 } else if (!strcmp(first->s, "lambda")) {
                     result = evalLambda(args, frame);
                 }
-
-                else {
+                
+                else { // user define function (or error)
                     Value *evaledOperator = eval(first, frame);
                     Value *evaledArgs = evalEach(args, frame);
                     return apply(evaledOperator, evaledArgs);
@@ -302,7 +309,7 @@ Value *eval(Value *expr, Frame *frame) {
     return result;
 }
 
-
+// display method for the interpreter. A lot like in  the parser
 void interpDisplay(Value *item) {
     Value *curlist = item;
     switch (curlist->type) {
@@ -337,6 +344,7 @@ void interpDisplay(Value *item) {
     }
 }
 
+// more or less just a wrapper for eval in a loop
 void interpret(Value *tree) {
     // make empty top frame
     Frame *topFrame = talloc(sizeof(Frame));
