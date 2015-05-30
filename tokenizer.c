@@ -212,6 +212,11 @@ Value *tokenize() {
                     nextToken = talloc(sizeof(Value));
                     nextToken->type = SYMBOL_TYPE;
                     nextToken->s = "+";
+                } else if (charRead == ')') {
+                    ungetc(charRead, stdin);
+                    nextToken = talloc(sizeof(Value));
+                    nextToken->type = SYMBOL_TYPE;
+                    nextToken->s = "+";
                 } else {
                     printf("Sytax error: there's a '+' out of place on line %i\n", lineNum);
                     texit(1);
@@ -226,6 +231,11 @@ Value *tokenize() {
                     nextToken = talloc(sizeof(Value));
                     nextToken->type = SYMBOL_TYPE;
                     nextToken->s = "-";
+                }  else if (charRead == ')') {
+                    ungetc(charRead, stdin);
+                    nextToken = talloc(sizeof(Value));
+                    nextToken->type = SYMBOL_TYPE;
+                    nextToken->s = "+";
                 } else {
                     printf("Sytax error: there's a '-' out of place on line %i\n", lineNum);
                     texit(1);

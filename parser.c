@@ -63,41 +63,44 @@ void printTree(Value *tree) {
     Value *curlist = tree;
     switch (curlist->type) {
     case DOUBLE_TYPE:
-        printf("(%f)", curlist->d);
+        printf("%f", curlist->d);
         break;
     case STR_TYPE:
-        printf("(%s)", curlist->s);
+        printf("%s", curlist->s);
         break;
     case INT_TYPE:
-        printf("(%i)", curlist->i);
+        printf("%i", curlist->i);
         break;
     case NULL_TYPE:
         printf("()");
         break;
     case PTR_TYPE:
-        printf("(%p)", curlist->p);
+        printf("%p", curlist->p);
         break;
     case OPEN_TYPE:
-        printf("(%s)", curlist->s);
+        printf("%s", curlist->s);
         break;
     case CLOSE_TYPE:
-        printf("(%s)", curlist->s);
+        printf("%s", curlist->s);
         break;
     case SYMBOL_TYPE:
-        printf("(%s)", curlist->s);
+        printf("%s", curlist->s);
         break;
     case BOOL_TYPE:
         if (curlist->i) {
-            printf("(#t)");
+            printf("#t");
         } else {
-            printf("(#f)");
+            printf("#f");
         }
         break;
     case CLOSURE_TYPE:
-        printf("(Closure)");
+        printf("Closure");
         break;
     case VOID_TYPE:
-        printf("(THE VOID)");
+        printf("THE VOID");
+        break;
+    case PRIMITIVE_TYPE:
+        printf("Primitive");
         break;
     case CONS_TYPE:
         
@@ -135,10 +138,13 @@ void printTree(Value *tree) {
                 }
                 break;
             case CLOSURE_TYPE:
-                printf("(Closure)");
+                printf("Closure");
                 break;
             case VOID_TYPE:
-                printf("(THE VOID)");
+                printf("THE VOID");
+                break;
+            case PRIMITIVE_TYPE:
+                printf("Primitive");
                 break;
             case CONS_TYPE:
                 printf("(");
@@ -147,6 +153,10 @@ void printTree(Value *tree) {
                 break;
             }
             if (cdr(curlist)->type != CONS_TYPE) {
+                if (cdr(curlist)->type != NULL_TYPE) {
+                    printf(" . ");
+                    printTree(cdr(curlist));
+                }
                 break;
             } else {
                 curlist = cdr(curlist);

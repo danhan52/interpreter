@@ -1,0 +1,9 @@
+(define length
+  (lambda (L)
+    (if (null? L)
+        0
+        (+ 1 (length (cdr L))))))
+
+(length (quote ()))
+(length (quote (elbow noodles are a tasty food)))
+(length (quote singleitem))

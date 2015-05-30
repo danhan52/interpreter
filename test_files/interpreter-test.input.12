@@ -1,0 +1,17 @@
+(define append
+  (lambda (L1 L2)
+    (if (null? L1)
+        L2
+        (cons (car L1) (append (cdr L1) L2)))))
+
+(append (quote (4 5)) (quote (6 7)))
+
+(define reverse-list
+  (lambda (L)
+    (if (null? L)
+        L
+        (append (reverse-list (cdr L)) (cons (car L) (quote ()))))))
+
+(reverse-list (quote ()))
+(reverse-list (quote (1 2 3 4)))
+(reverse-list (quote (("computer" "science") "is" "awesome")))

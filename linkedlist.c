@@ -86,6 +86,9 @@ void display(Value *list) {
     case VOID_TYPE:
         printf("(THE VOID)");
         break;
+    case PRIMITIVE_TYPE:
+        printf("(Primitive)");
+        break;
     case CONS_TYPE:
         printf("(");
         while (1) {
@@ -126,6 +129,9 @@ void display(Value *list) {
                 break;
             case VOID_TYPE:
                 printf("THE VOID");
+                break;
+            case PRIMITIVE_TYPE:
+                printf("Primitive");
                 break;
             case CONS_TYPE:
                 display(car(curlist));

@@ -110,9 +110,23 @@ void bindToFrame(Value *varName, Value *varVal, Frame *frame) {
     if (varName->type != SYMBOL_TYPE) {
         bindingError();
     }
-    Value *newVal = eval(varVal, frame);
+    Value *newVal = varVal;
     Value *varBound = cons(varName, newVal);
     frame->bindings = cons(varBound, frame->bindings);
+}
+
+// binds the name and function to the frame (primitives)
+void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
+    // create name value
+    Value *nameVal = talloc(sizeof(Value));
+    nameVal->type = SYMBOL_TYPE;
+    nameVal->s = name;
+    // create function value
+    Value *funVal = talloc(sizeof(Value));
+    funVal->type = PRIMITIVE_TYPE;
+    funVal->pf = function;
+    // bind it
+    bindToFrame(nameVal, funVal, frame);
 }
 
 // evaluates let statement or throws an error
@@ -137,8 +151,8 @@ Value *evalLet(Value *args, Frame *frame) {
             if (length(curvar) != 2) {
                 bindingError();
             }
-            
-            bindToFrame(car(curvar), car(cdr(curvar)), letFrame);
+            Value *varVal = eval(car(cdr(curvar)), frame);
+            bindToFrame(car(curvar), varVal, letFrame);
             
             if (variables->type == NULL_TYPE) {
                 break;
@@ -163,7 +177,8 @@ Value *evalDefine(Value *args, Frame *frame) {
         printf("Interpret error: improperly formed define\n");
         texit(1);
     }
-    bindToFrame(car(args), car(cdr(args)), frame);
+    Value *varVal = eval(car(cdr(args)), frame);
+    bindToFrame(car(args), varVal, frame);
     Value *thevoid = talloc(sizeof(Value));
     thevoid->type = VOID_TYPE;
     return thevoid;
@@ -200,6 +215,9 @@ Value *evalLambda(Value *args, Frame *frame) {
 
 // applies the given function (closure) to the arguments
 Value *apply(Value *function, Value *args) {
+    if (function->type == PRIMITIVE_TYPE) {
+        return &(*(function->pf)(args));
+    }
     if (function->type != CLOSURE_TYPE) {
         printf("Interpret error: badly formed function\n");
         texit(1);
@@ -270,6 +288,9 @@ Value *eval(Value *expr, Frame *frame) {
         case CLOSURE_TYPE:
             result = expr;
             break;
+        case PRIMITIVE_TYPE:
+            result = expr;
+            break;
         case CONS_TYPE:
         {
             Value *first = car(expr);
@@ -283,14 +304,14 @@ Value *eval(Value *expr, Frame *frame) {
                 } else if (!strcmp(first->s, "let")) {
                     result = evalLet(args, frame);
                 } else if (!strcmp(first->s, "quote")) {
-                    result = args;
+                    result = car(args);
                 } else if (!strcmp(first->s, "define")) {
                     result = evalDefine(args, frame);
                 } else if (!strcmp(first->s, "lambda")) {
                     result = evalLambda(args, frame);
                 }
                 
-                else { // user define function (or error)
+                else { // user define function or primitive
                     Value *evaledOperator = eval(first, frame);
                     Value *evaledArgs = evalEach(args, frame);
                     return apply(evaledOperator, evaledArgs);
@@ -309,7 +330,122 @@ Value *eval(Value *expr, Frame *frame) {
     return result;
 }
 
-// display method for the interpreter. A lot like in  the parser
+
+void addError() {
+    printf("Interpret error: non-numeric add input\n");
+    texit(1);
+}
+
+// function to add numbers
+Value *primitiveAdd(Value *args) {
+    Value *result = talloc(sizeof(Value));
+    bool isInt = 1;
+    int sumInt = 0;
+    double sumDub = 0;
+    if (length(args) == 0) {
+        result->i = 0;
+        return result;
+    }
+    if (args->type == CONS_TYPE) {
+        Value *tempArgs = args;
+        
+        for (int i=0; i<length(args); i++) {
+            Value *curVal = car(tempArgs);
+            if (isInt) {
+                if (curVal->type == INT_TYPE) {
+                    sumInt += curVal->i;
+                } else if (curVal->type == DOUBLE_TYPE) {
+                    sumDub = sumInt;
+                    sumDub += curVal->d;
+                    isInt = 0;
+                } else {
+                    addError();
+                }
+            } else {
+                if (curVal->type == INT_TYPE) {
+                    sumDub += curVal->i;
+                } else if (curVal->type == DOUBLE_TYPE) {
+                    sumDub += curVal->d;
+                } else {
+                    addError();
+                }
+            }
+            tempArgs = cdr(tempArgs);
+        }
+    } else if (args->type == INT_TYPE) {
+        result->i = args->i;
+    } else if (args->type == DOUBLE_TYPE) {
+        result->type = DOUBLE_TYPE;
+        result->d = args->d;
+    } else {
+        addError();
+    }
+    
+    if (isInt) {
+        result->type = INT_TYPE;
+        result->i = sumInt;
+    } else {
+        result->type = DOUBLE_TYPE;
+        result->d = sumDub;
+    }
+    return result;    
+}
+
+// function to check in input is null
+Value *primitiveNull(Value *args) {
+    if (length(args) != 1) {
+        printf("Interpret error: null? only takes 1 argument\n");
+        texit(1);
+    }
+    Value *theTruth = talloc(sizeof(Value));
+    theTruth->type = BOOL_TYPE;
+    if (isNull(car(args))) {
+        theTruth->i = 1;
+    } else {
+        theTruth->i = 0;
+    }
+    return theTruth;
+}
+
+// function to get the car of the args
+Value *primitiveCar(Value *args) {
+    if (length(args) != 1) {
+        printf("Interpret error: car only takes 1 argument\n");
+        texit(1);
+    }
+    if (car(args)->type != CONS_TYPE) {
+        printf("Interpret error: car requires cons cell\n");
+        texit(1);
+    }
+    
+    return car(car(args));
+}
+
+// function to get the cdr of the args
+Value *primitiveCdr(Value *args) {
+    if (length(args) != 1) {
+        printf("Interpret error: cdr only takes 1 argument\n");
+        texit(1);
+    }
+    if (car(args)->type != CONS_TYPE) {
+        printf("Interpret error: cdr requires cons cell\n");
+        texit(1);
+    }
+    
+    return cdr(car(args));
+}
+
+// function to make the cons cell of two items
+Value *primitiveCons(Value *args) {
+    if (length(args) != 2) {
+        printf("Interpret error: cons takes 2 arguments\n");
+        texit(1);
+    }
+    return cons(car(args), car(cdr(args)));
+}
+
+
+// display method for the interpreter. A lot like in the parser
 void interpDisplay(Value *item) {
     Value *curlist = item;
     switch (curlist->type) {
@@ -335,11 +471,19 @@ void interpDisplay(Value *item) {
         printf("procedure %p\n", item);
         break;
     case CONS_TYPE:
+        printf("(");
         printTree(item);
-        printf("\n");
+        printf(")\n");
+        break;
+    case NULL_TYPE:
+        printf("()\n");
+        break;
+    case SYMBOL_TYPE:
+        printf("%s\n", curlist->s);
         break;
     default:
-        printf("Interpret error: bad result (on me)\n");
+        printf("Interpret error: bad result (my bad): \n");
+        display(item);
         break;
     }
 }
@@ -350,6 +494,16 @@ void interpret(Value *tree) {
     Frame *topFrame = talloc(sizeof(Frame));
     topFrame->parent = NULL;
     topFrame->bindings = makeNull();
+    // primitive functions
+    bind("+", primitiveAdd, topFrame);
+    bind("car", primitiveCar, topFrame);
+    bind("cdr", primitiveCdr, topFrame);
+    bind("null?", primitiveNull, topFrame);
+    bind("cons", primitiveCons, topFrame);
+    // if tree is empty, don't do anything
+    if (tree->type == NULL_TYPE) {
+        texit(0);
+    }
     // get ready to evaluate
     Value *curexp = car(tree);
     Value *curtree = cdr(tree);

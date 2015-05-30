@@ -1,0 +1,10 @@
+(define sum-list
+    (lambda (limst)
+        (if (null? limst)
+            0
+            (+ (car limst) (sum-list (cdr limst))))))
+
+(sum-list (quote (9 8 3 76)))
+(cons (quote 1) (quote (7 5)))
+(sum-list (cons (quote 1) (quote (7 5))))
+(sum-list (quote (dogs puppies)))
