@@ -1,0 +1,15 @@
+(let* ((a 2) (b (+ a 1)))
+    b)
+
+(define not
+    (lambda (bool)
+        (if bool #f #t)))
+
+(define twelve
+    (let* ((a #f) (b (not a)))
+        (lambda ()
+            b)))
+
+twelve
+(twelve)
+        

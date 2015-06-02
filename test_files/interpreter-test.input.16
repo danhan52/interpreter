@@ -1,0 +1,16 @@
+(define no #f)
+(define nope #f)
+(define not
+    (lambda ()
+        (if #t #f 3)))
+(define yup
+    (lambda ()
+        (begin (+ 3 4)
+            (set! nope #t)
+            #f)))
+
+(cond (no 1)
+    (#t 2)
+    ((yup) 3)
+    ((not) "garbage")
+    (else "chameleon"))
