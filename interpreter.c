@@ -13,6 +13,7 @@
 #include "talloc.h"
 #include "interpreter.h"
 #include "parser.h"
+#include "tokenizer.h"
 
 // finds the symbol within the bindings of the current frame
 // or prints an error and quits
@@ -23,7 +24,9 @@ Value *lookUpSymbol(Value *symb, Frame *frame) {
     if (variables->type == NULL_TYPE) {     // nothing in bindings
         Frame *papa = frame->parent;
         if (papa == NULL) {     // currently in top frame
-            printf("Interpret error: variable reference before declaration\n");
+            printf("Interpret error: variable reference before declaration: ");
+            display(symb);
+            printf("\n");
             texit(1);
         } else {    // look in parent frame
             result = lookUpSymbol(symb, papa);
@@ -39,7 +42,9 @@ Value *lookUpSymbol(Value *symb, Frame *frame) {
                 if (variables->type == NULL_TYPE) { // end of bindings
                     Frame *papa = frame->parent;
                     if (papa == NULL) {     // currently in top frame
-                        printf("Interpret error: variable reference before declaration\n");
+                        printf("Interpret error: variable reference before declaration: ");
+                        display(symb);
+                        printf("\n");
                         texit(1);
                     } else {    // look in parent frame
                         result = lookUpSymbol(symb, papa);
@@ -406,7 +411,9 @@ Value *evalSetbang(Value *args, Frame *frame) {
     if (variables->type == NULL_TYPE) {     // nothing in bindings
         Frame *papa = frame->parent;
         if (papa == NULL) {     // currently in top frame
-            printf("Interpret error (set!): variable reference before declaration\n");
+            printf("Interpret error (set!): variable reference before declaration: ");
+            display(symb);
+            printf("\n");
             texit(1);
         } else {    // look in parent frame
             result = evalSetbang(args, papa);
@@ -422,7 +429,9 @@ Value *evalSetbang(Value *args, Frame *frame) {
                 if (variables->type == NULL_TYPE) { // end of bindings
                     Frame *papa = frame->parent;
                     if (papa == NULL) {     // currently in top frame
-                        printf("Interpret error (set!): variable reference before declaration\n");
+                        printf("Interpret error (set!): variable reference before declaration: ");
+                        display(symb);
+                        printf("\n");
                         texit(1);
                     } else {    // look in parent frame
                         result = evalSetbang(args, papa);
@@ -593,8 +602,13 @@ Value *eval(Value *expr, Frame *frame) {
                     Value *evaledArgs = evalEach(args, frame);
                     return apply(evaledOperator, evaledArgs);
                 }
+            } else if (first->type == CONS_TYPE) {
+                Value *evaledOperator = eval(first, frame);
+                Value *evaledArgs = evalEach(args, frame);
+                return apply(evaledOperator, evaledArgs);
             } else {
-                printf("Interpret error: badly formed expression\n");
+                display(first);
+                printf("\nInterpret error: badly formed expression\n");
                 texit(1);
             }
             break;
@@ -608,7 +622,7 @@ Value *eval(Value *expr, Frame *frame) {
 }
 
 // function to check in input is null
-Value *primitiveNull(Value *args) {
+Value *primitiveNullQ(Value *args) {
     if (length(args) != 1) {
         printf("Interpret error: null? only takes 1 argument\n");
         texit(1);
@@ -661,7 +675,7 @@ Value *primitiveCons(Value *args) {
 }
 
 // function to check if a number is zero
-Value *primitiveZero(Value *args) {
+Value *primitiveZeroQ(Value *args) {
     if (length(args) != 1) {
         printf("Interpret error: zero? takes 1 argument\n");
         texit(1);
@@ -998,6 +1012,152 @@ Value *primitiveEqual(Value *args) {
     return result;
 }
 
+Value *primitiveEqualQ(Value *args) {
+    if (length(args) != 2) {
+        printf("Interpret error: = takes 2 arguments\n");
+        texit(1);
+    }
+    Value *result = talloc(sizeof(Value));
+    result->type = BOOL_TYPE;
+    result->i = 0;
+    Value *firstArg = car(args);
+    Value *secondArg = car(cdr(args));
+    switch (firstArg->type) {
+    case INT_TYPE:
+        if (secondArg->type == INT_TYPE) {
+            if (secondArg->i == firstArg->i) {
+                result->i = 1;
+            }
+        }
+        break;
+    case DOUBLE_TYPE:
+        if (secondArg->type == DOUBLE_TYPE) {
+            if (secondArg->d == firstArg->d) {
+                result->i = 1;
+            }
+        }
+        break;
+    case STR_TYPE:
+        if (secondArg->type == STR_TYPE) {
+            if (!strcmp(secondArg->s, firstArg->s)) {
+                result->i = 1;
+            }
+        }
+        break;
+    case CONS_TYPE:
+        if (secondArg->type == CONS_TYPE) {
+            Value *firstL = makeNull();
+            firstL = cons(car(secondArg),firstL);
+            firstL = cons(car(firstArg),firstL);
+            Value *secondL = makeNull();
+            secondL = cons(cdr(secondArg),secondL);
+            secondL = cons(cdr(firstArg),secondL);
+
+            if (primitiveEqualQ(firstL)) {
+                if (primitiveEqualQ(secondL)) {
+                    result->i = 1;
+                }
+            }
+        }
+        break;
+    case NULL_TYPE:
+        if (secondArg->type == NULL_TYPE) {
+            result->i = 1;
+        }
+        break;
+    case PTR_TYPE:
+        if (secondArg->type == PTR_TYPE) {
+            if (secondArg->p == firstArg->p) {
+                result->i = 1;
+            }
+        }
+        break;
+    case OPEN_TYPE:
+        if (secondArg->type == OPEN_TYPE) {
+            result->i = 1;
+        }
+        break;
+    case CLOSE_TYPE:
+        if (secondArg->type == CLOSE_TYPE) {
+            result->i = 1;
+        }
+        break;
+    case BOOL_TYPE:
+        if (secondArg->type == BOOL_TYPE) {
+            if (secondArg->i == firstArg->i) {
+                result->i = 1;
+            }
+        }
+        break;
+    case SYMBOL_TYPE:
+        if (secondArg->type == SYMBOL_TYPE) {
+            if (!strcmp(secondArg->s, firstArg->s)) {
+                result->i = 1;
+            }
+        }
+        break;
+    case VOID_TYPE:
+        if (secondArg->type == VOID_TYPE) {
+            result->i = 1;
+        }
+        break;
+    case CLOSURE_TYPE:
+        if (secondArg->type == CLOSURE_TYPE) {
+            if (&(secondArg->cl) == &(firstArg->cl)) {
+                result->i = 1;
+            }
+        }
+        break;
+    case PRIMITIVE_TYPE:
+        if (secondArg->type == PRIMITIVE_TYPE) {
+            if (secondArg->pf == firstArg->pf) {
+                result->i = 1;
+            }
+        }
+        break;
+    }
+    return result;
+}
+
+Value *primitiveListQ(Value *args) {
+    if (length(args) != 1) {
+        printf("Interpret error: list? takes 1 argument\n");
+        texit(1);
+    }
+    Value *result = talloc(sizeof(Value));
+    result->type = BOOL_TYPE;
+    Value *tempArgs = car(args);
+    
+    for (int i=0; i<length(car(args)); i++) {
+        if (tempArgs->type != CONS_TYPE) {
+            result->i = 0;
+            return result;
+        }
+        tempArgs = cdr(tempArgs);
+    }
+    if (tempArgs->type != NULL_TYPE) {
+        result->i = 0;
+        return result;
+    }
+    result->i = 1;
+    return result;
+}
+
+Value *primitiveLength(Value *args) {
+    if (length(args) != 1) {
+        printf("Interpret error: length takes 1 argument\n");
+        texit(1);
+    }
+    Value *isList = primitiveListQ(args);
+    if (isList->i == 0) {
+        printf("Interpret error: length requires a list\n");
+        texit(1);
+    }
+    Value *langth = talloc(sizeof(Value));
+    langth->type = INT_TYPE;
+    langth->i = length(car(args));
+    return langth;
+}
 
 // display method for the interpreter. A lot like in the parser
 void interpDisplay(Value *item) {
@@ -1052,9 +1212,9 @@ void interpret(Value *tree) {
     bind("+", primitiveAdd, topFrame);
     bind("car", primitiveCar, topFrame);
     bind("cdr", primitiveCdr, topFrame);
-    bind("null?", primitiveNull, topFrame);
+    bind("null?", primitiveNullQ, topFrame);
     bind("cons", primitiveCons, topFrame);
-    bind("zero?", primitiveZero, topFrame);
+    bind("zero?", primitiveZeroQ, topFrame);
     bind("*", primitiveMult, topFrame);
     bind("-", primitiveMinus, topFrame);
     bind("/", primitiveDivide, topFrame);
@@ -1062,6 +1222,9 @@ void interpret(Value *tree) {
     bind("<", primitiveLessThan, topFrame);
     bind(">", primitiveGreaterThan, topFrame);
     bind("=", primitiveEqual, topFrame);
+    bind("equal?", primitiveEqualQ, topFrame);
+    bind("list?", primitiveListQ, topFrame);
+    bind("length", primitiveLength, topFrame);
     // if tree is empty, don't do anything
     if (tree->type == NULL_TYPE) {
         texit(0);

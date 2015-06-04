@@ -1,0 +1,13 @@
+;; returns true is val is the sum of two adjacent values in numlist
+(define pair-sum?
+  (lambda (numlist val)
+    (if (< (length numlist) 2)
+        #f
+        (let ((a (car numlist)) (b (car (cdr numlist))))
+          (if (equal? (+ a b ) val)
+              #t
+              (pair-sum? (cdr numlist) val))))))
+
+(pair-sum? (quote (2 3 6 7 12)) 19)
+(pair-sum? (quote (2 3 6 7 12)) 5)
+(pair-sum? (quote (2 3 6 7 12)) 473)

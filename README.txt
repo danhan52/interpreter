@@ -8,3 +8,7 @@ Files 19 and onward are for testing anything else I may implement.
 
 So far I have implemented these extra things:
     - null?
+    - zero?
+    - equal?
+    - list?
+    - length

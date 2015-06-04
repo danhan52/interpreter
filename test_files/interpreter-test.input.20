@@ -1,0 +1,22 @@
+;; made by Dave Musicant
+(define gen-lazy-list
+  (lambda (start stop)
+    (if (> start stop)
+        #f
+        (cons start
+            (lambda () (gen-lazy-list (+ start 1) stop))))))
+
+;; same as pair-sum? but works on lazy-lists
+(define pair-sum-lazy?
+  (lambda (numlist val)
+    (if (equal? ((cdr numlist)) #f)
+        #f
+        (let ((a (car numlist)) (b (car ((cdr numlist)))))
+          (if (equal? (+ a b ) val)
+              #t
+              (pair-sum-lazy? ((cdr numlist)) val))))))
+
+
+(pair-sum-lazy? (gen-lazy-list 4 20) 10)
+(pair-sum-lazy? (gen-lazy-list 4 20) 9)
+(pair-sum-lazy? (gen-lazy-list 4 20) 39)
